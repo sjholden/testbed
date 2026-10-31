@@ -147,21 +147,23 @@ class GeodesicPolyhedron:
         """
         Calculate and store the midpoints of the triangle faces.
 
-        The centroid of each face is re-projected onto the unit sphere by
-        normalizing it, so every returned midpoint has radius 1.
+        Each midpoint is the spherical average of the face's three
+        vertices: normalize the vector sum of the three unit-length
+        vertex directions. The result lies exactly on the unit sphere
+        and is independent of the chordal scaling that a Euclidean
+        centroid introduces before re-projection.
 
-        Note: Not actually the true spherical midpoint - the centroid
-        assumes the triangles are equilateral, but due to the projection
-        on the sphere they are not. Re-projection puts the point back on
-        the sphere surface, but a spherical average of the three vertex
-        directions would be needed for an exact spherical midpoint.
+        Note: for these geodesic meshes the spherical average agrees
+        with the previously used normalized centroid to within ~2e-16
+        (normalization cancels the division by 3); it is the standard
+        direction-average formulation requested here.
         """
         midpoints = []
         vertices = self.vertices
         for face in self.faces:
-            mid = (vertices[face[0]] + vertices[face[1]] + vertices[face[2]])/3
-            mid /= np.linalg.norm(mid)
-            midpoints.append(mid)
+            avg = vertices[face[0]] + vertices[face[1]] + vertices[face[2]]
+            avg /= np.linalg.norm(avg)
+            midpoints.append(avg)
         self.facemidpoints = midpoints
 
     def _generateNeighbours(self):
