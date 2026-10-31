@@ -13,7 +13,7 @@ class GeodesicPolyhedron:
                                          vertices list.
         facemidpoints (list(point)): The midpoint of the faces - indices align 
                                      with the faces list.
-        neighbours (list(list(int)): The neighbouring traingles. Indices align 
+        neighbours (list(list(int)): The neighbouring triangles. Indices align 
                                      with the faces list, values are indices
                                      into the faces list.
         data (list(?)): User determined data associated with the faces, if 
@@ -29,7 +29,7 @@ class GeodesicPolyhedron:
             divisions(int): Number of times to subdivide triangles.
         """
         self.divisions = divisions
-        self._generateIcosohedron()
+        self._generateIcosahedron()
         self._generateGeodesic()
 
     def getVertices(self):
@@ -64,8 +64,8 @@ class GeodesicPolyhedron:
             self._generateNeighbours()
         return self.neighbours
 
-    def _generateIcosohedron(self):
-        """Generate the initial icosohedron."""
+    def _generateIcosahedron(self):
+        """Generate the initial icosahedron."""
         gr = (1 + np.sqrt(5)) / 2
         norm = np.linalg.norm((gr,1))
         one = 1/norm
@@ -87,7 +87,7 @@ class GeodesicPolyhedron:
         self._midpoint_cache = {}
 
     def _generateGeodesic(self):
-        """Convert the icosohedron into a geodesic polyhedron."""
+        """Convert the icosahedron into a geodesic polyhedron."""
         for _ in range(self.divisions):
             self._subdivideFaces()
 
