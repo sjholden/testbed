@@ -1,5 +1,4 @@
 import numpy as np
-import functools
 import scipy as sp
 import scipy.spatial
 
@@ -14,7 +13,7 @@ class GeodesicPolyhedron:
                                          vertices list.
         facemidpoints (list(point)): The midpoint of the faces - indices align 
                                      with the faces list.
-        neighbours (list(list(int)): The neighbouring traingles. Indices align 
+        neighbours (list(list(int)): The neighbouring triangles. Indices align 
                                      with the faces list, values are indices
                                      into the faces list.
         data (list(?)): User determined data associated with the faces, if 
@@ -30,7 +29,7 @@ class GeodesicPolyhedron:
             divisions(int): Number of times to subdivide triangles.
         """
         self.divisions = divisions
-        self._generateIcosohedron()
+        self._generateIcosahedron()
         self._generateGeodesic()
 
     def getVertices(self):
@@ -65,8 +64,8 @@ class GeodesicPolyhedron:
             self._generateNeighbours()
         return self.neighbours
 
-    def _generateIcosohedron(self):
-        """Generate the initial icosohedron."""
+    def _generateIcosahedron(self):
+        """Generate the initial icosahedron."""
         gr = (1 + np.sqrt(5)) / 2
         norm = np.linalg.norm((gr,1))
         one = 1/norm
@@ -85,9 +84,10 @@ class GeodesicPolyhedron:
         self.data = [None for x in self.faces]
         self.facemidpoints = None
         self.neighbours = None
+        self._midpoint_cache = {}
 
     def _generateGeodesic(self):
-        """Convert the icosohedron into a geodesic polyhedron."""
+        """Convert the icosahedron into a geodesic polyhedron."""
         for _ in range(self.divisions):
             self._subdivideFaces()
 
@@ -113,12 +113,12 @@ class GeodesicPolyhedron:
         self.facemidpoints = None
         self.neighbours = None
 
-    @functools.cache
     def _createMiddlePointVertex(self, a, b):
         """
         Create a new vertex at the midpoint of two existing vertices.
 
-        @cache is not for performance, it is essential to the algorithm.
+        The per-instance cache (self._midpoint_cache) is not for performance,
+        it is essential to the algorithm.
         The midpoint of a and b is determined and normalized to be on
         the sphere. If that midpoint was already generated the existing
         index is used.
@@ -132,23 +132,36 @@ class GeodesicPolyhedron:
         """
 
         if b < a:
-            return self._createMiddlePointVertex(b, a)
+            a, b = b, a
+        cached = self._midpoint_cache.get((a, b))
+        if cached is not None:
+            return cached
         vertex = (self.vertices[a] + self.vertices[b]) / 2
         vertex = vertex / np.linalg.norm(vertex)
         self.vertices.append(vertex)
-        return len(self.vertices)-1
+        index = len(self.vertices)-1
+        self._midpoint_cache[(a, b)] = index
+        return index
 
     def _generateFaceMidpoints(self):
         """
         Calculate and store the midpoints of the triangle faces.
 
-        Note: Not actually the midpoint - this assumes the triangles are
-        equilateral, but due to the projection on the sphere they are not.
+        The centroid of each face is re-projected onto the unit sphere by
+        normalizing it, so every returned midpoint has radius 1.
+
+        Note: Not actually the true spherical midpoint - the centroid
+        assumes the triangles are equilateral, but due to the projection
+        on the sphere they are not. Re-projection puts the point back on
+        the sphere surface, but a spherical average of the three vertex
+        directions would be needed for an exact spherical midpoint.
         """
         midpoints = []
         vertices = self.vertices
         for face in self.faces:
-            midpoints.append((vertices[face[0]] + vertices[face[1]] + vertices[face[2]])/3)
+            mid = (vertices[face[0]] + vertices[face[1]] + vertices[face[2]])/3
+            mid /= np.linalg.norm(mid)
+            midpoints.append(mid)
         self.facemidpoints = midpoints
 
     def _generateNeighbours(self):
